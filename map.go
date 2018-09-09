@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+var (
+	rowScanIndexRe = regexp.MustCompile("index (\\d+): (.+)$")
+)
+
 var mappers []Mapper
 
 type Mapper interface {
@@ -134,9 +138,9 @@ func (mapping Mapping) ScanRow(target interface{}, row Row, scanOrder ...string)
 	}
 
 	if err := row.Scan(scan...); err != nil {
-		if m := regexp.MustCompile("index (\\d+): (.+)$").FindStringSubmatch(err.Error()); m != nil {
+		if m := rowScanIndexRe.FindStringSubmatch(err.Error()); m != nil {
 			index, _ := strconv.Atoi(m[1])
-			err = fmt.Errorf("Scan error on index %v: %v (recv: %v)", index, m[2], reflect.TypeOf(scan[index]))
+			return fmt.Errorf("Scan error on index %v: %v (recv: %v)", index, m[2], reflect.TypeOf(scan[index]))
 		}
 		return err
 	}
