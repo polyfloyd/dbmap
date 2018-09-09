@@ -106,14 +106,13 @@ func testPair(mapping map[string]string, k, v string) error {
 func TestStructMappping(t *testing.T) {
 	mapping, err := StructMapping(testType{})
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	if err := testPair(mapping.dbToStruct, "foo", "Foo"); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	} else if err := testPair(mapping.dbToStruct, "bar", "Bar"); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 }
 
@@ -128,19 +127,16 @@ func TestScan(t *testing.T) {
 	}
 	mapping, err := StructMapping(testType{})
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	t.Log(mapping)
 
 	target := testType{}
 	if err := mapping.ScanRow(&target, row, row.Cols()...); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := target.check(row); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 }
 
@@ -161,21 +157,18 @@ func TestScanStream(t *testing.T) {
 
 	mapping, err := StructMapping(testType{})
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	stream := mapping.ScanStream(rows)
 	var i int
 	for elem := range stream {
 		if err, ok := elem.(error); ok {
-			t.Error(err)
-			return
+			t.Fatal(err)
 		}
 		if target, ok := elem.(testType); ok {
 			if err := target.check(rows.rows[i]); err != nil {
-				t.Error(err)
-				return
+				t.Fatal(err)
 			}
 		}
 		i++
@@ -192,23 +185,19 @@ func TestScanAll(t *testing.T) {
 
 	mapping, err := StructMapping(testType{})
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	results, err := mapping.ScanAll(rows)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	slice, ok := results.([]testType)
 	if !ok {
-		t.Errorf("Invalid return value for ScanAll(): %v", reflect.TypeOf(slice))
-		return
+		t.Fatalf("Invalid return value for ScanAll(): %v", reflect.TypeOf(slice))
 	}
 
 	if len(slice) != len(rows.rows) {
-		t.Errorf("Number of returned rows, %v,  does not match the input, %v", len(slice), len(rows.rows))
-		return
+		t.Fatalf("Number of returned rows, %v,  does not match the input, %v", len(slice), len(rows.rows))
 	}
 }
