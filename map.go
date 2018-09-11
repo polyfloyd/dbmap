@@ -86,7 +86,6 @@ func (mapping *Mapping) mapStruct(structType reflect.Type, nesting func(reflect.
 outer:
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
-		fieldType := structType.FieldByIndex(field.Index).Type
 
 		dbName := field.Tag.Get("db")
 		if dbName == "-" {
@@ -94,7 +93,7 @@ outer:
 		}
 
 		if dbName == "" {
-			if fieldType.Kind() == reflect.Struct {
+			if field.Anonymous && field.Type.Kind() == reflect.Struct {
 				mapping.mapStruct(field.Type, func(s reflect.Value) reflect.Value {
 					return nesting(s).FieldByName(field.Name)
 				})
@@ -108,7 +107,7 @@ outer:
 		mapping.dbToStruct[dbName] = field.Name
 		mapping.scanNesting[field.Name] = nesting
 		for _, mapper := range mappers {
-			if mapper.Accepts(fieldType) {
+			if mapper.Accepts(field.Type) {
 				mapping.mapping[field.Name] = mapper
 				continue outer
 			}
