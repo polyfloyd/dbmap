@@ -201,3 +201,26 @@ func TestScanAll(t *testing.T) {
 		t.Fatalf("Number of returned rows, %v,  does not match the input, %v", len(slice), len(rows.rows))
 	}
 }
+
+func TestDuplicateMapping(t *testing.T) {
+	type MyStruct struct {
+		Foo int `db:"foo"`
+		Bar int `db:"foo"`
+	}
+	if _, err := StructMapping(MyStruct{}); err == nil {
+		t.Fatalf("expected an error")
+	}
+}
+
+func TestDuplicateMappingEmbedded(t *testing.T) {
+	type MyEmbeddedStruct struct {
+		Foo int `db:"foo"`
+	}
+	type MyStruct struct {
+		MyEmbeddedStruct
+		Bar int `db:"foo"`
+	}
+	if _, err := StructMapping(MyStruct{}); err == nil {
+		t.Fatalf("expected an error")
+	}
+}
