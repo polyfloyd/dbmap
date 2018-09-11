@@ -14,10 +14,8 @@ func init() {
 type nativeMapper struct{}
 
 func (nativeMapper) Accepts(fieldType reflect.Type) bool {
-	var kind reflect.Kind
-	if fieldType.Kind() != reflect.Ptr {
-		kind = fieldType.Kind()
-	} else {
+	kind := fieldType.Kind()
+	if kind == reflect.Ptr {
 		kind = fieldType.Elem().Kind()
 	}
 	switch kind {

@@ -31,7 +31,7 @@ func (js *jsonScanner) Scan(value interface{}) error {
 	case []byte:
 		in = bytes.NewReader(v)
 	default:
-		return fmt.Errorf("Can not decode json from %#v", value)
+		return fmt.Errorf("can not decode json from %#v", value)
 	}
 	return json.NewDecoder(in).Decode(js)
 }

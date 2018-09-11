@@ -17,7 +17,7 @@ type testType struct {
 	EmbeddedType
 	Foo  int16                  `db:"foo"`
 	Bar  string                 `db:"bar"`
-	Json map[string]interface{} `db:"json"`
+	JSON map[string]interface{} `db:"json"`
 	Dur  time.Duration          `db:"dur"`
 }
 
@@ -28,8 +28,8 @@ func (target testType) check(row testRow) error {
 	if target.Bar != row["bar"].(string) {
 		return fmt.Errorf("value Bar was not scanned")
 	}
-	if str, ok := target.Json["lol"]; !ok || str != "cat" {
-		return fmt.Errorf("value Json was not scanned")
+	if str, ok := target.JSON["lol"]; !ok || str != "cat" {
+		return fmt.Errorf("value JSON was not scanned")
 	}
 	if target.Dur != row["dur"].(time.Duration) {
 		return fmt.Errorf("value Dur was not scanned")
@@ -57,7 +57,7 @@ func (row testRow) Cols() []string {
 func (row testRow) Scan(data ...interface{}) error {
 	for i, col := range row.Cols() {
 		if data[i] == nil {
-			return fmt.Errorf("Receiving column %q is nil", col)
+			return fmt.Errorf("receiving column %q is nil", col)
 		}
 		tar := reflect.Indirect(reflect.ValueOf(data[i]))
 		tar.Set(reflect.ValueOf(row[col]).Convert(tar.Type()))
@@ -88,7 +88,7 @@ func (testRows) Err() error {
 }
 
 func (tr *testRows) Next() bool {
-	tr.current += 1
+	tr.current++
 	return tr.current < len(tr.rows)
 }
 
@@ -98,7 +98,7 @@ func (tr testRows) Scan(data ...interface{}) error {
 
 func testPair(mapping map[string]string, k, v string) error {
 	if mapping[k] != v {
-		return fmt.Errorf("Unmatched pair %q, %q", k, v)
+		return fmt.Errorf("unmatched pair %q, %q", k, v)
 	}
 	return nil
 }

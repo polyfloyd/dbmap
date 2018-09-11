@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	rowScanIndexRe = regexp.MustCompile("index (\\d+): (.+)$")
+	rowScanIndexRe = regexp.MustCompile(`index (\d+): (.+)$`)
 )
 
 var mappers []Mapper
@@ -34,8 +34,7 @@ func RegisterMapper(mapper Mapper) {
 	mappers = append([]Mapper{mapper}, mappers...)
 }
 
-// An initialised instance of Mapping is able to translate queried database
-// rows to annotated structs.
+// A Mapping is translates queried database rows to annotated structs.
 type Mapping struct {
 	structType reflect.Type
 
@@ -51,11 +50,11 @@ type Mapping struct {
 	scanNesting map[string]func(struc reflect.Value) (nestedStruct reflect.Value)
 }
 
-// Creates the mapping for the specified struct.
+// StructMapping creates the mapping for the specified struct.
 func StructMapping(struc interface{}) (Mapping, error) {
 	structType := reflect.TypeOf(struc)
 	if structType.Kind() != reflect.Struct {
-		return Mapping{}, fmt.Errorf("Argument is not a struct, actually is %v", structType.Kind())
+		return Mapping{}, fmt.Errorf("argument is not a struct, actually is %v", structType.Kind())
 	}
 
 	mapping := Mapping{
@@ -73,8 +72,8 @@ func StructMapping(struc interface{}) (Mapping, error) {
 	return mapping, nil
 }
 
-// Like StructMapping, but panics if an error occurs. Usefull for one-time
-// initialization at the start of the program.
+// MustStructMapping is like StructMapping, but panics if an error occurs.
+// Usefull for one-time initialization at the start of the program.
 func MustStructMapping(struc interface{}) Mapping {
 	mapping, err := StructMapping(struc)
 	if err != nil {
@@ -104,7 +103,7 @@ outer:
 		}
 
 		if _, ok := mapping.dbToStruct[dbName]; ok {
-			return fmt.Errorf("Duplicate mapping for %q on %v", dbName, mapping.structType)
+			return fmt.Errorf("duplicate mapping for %q on %v", dbName, mapping.structType)
 		}
 		mapping.dbToStruct[dbName] = field.Name
 		mapping.scanNesting[field.Name] = nesting
@@ -114,15 +113,15 @@ outer:
 				continue outer
 			}
 		}
-		return fmt.Errorf("Unsupported field: %v (type=%v)", field.Name, field.Type)
+		return fmt.Errorf("unsupported field: %v (type=%v)", field.Name, field.Type)
 	}
 	return nil
 }
 
-// Scans the current value of the row into the target struct.
+// ScanRow scans the current value of the row into the target struct.
 func (mapping Mapping) ScanRow(target interface{}, row Row, scanOrder ...string) error {
 	if t := reflect.TypeOf(target).Elem(); !mapping.structType.ConvertibleTo(t) {
-		return fmt.Errorf("Mapping type (%v) is not convertible to the scan target (%v)", mapping.structType, t)
+		return fmt.Errorf("mapping type (%v) is not convertible to the scan target (%v)", mapping.structType, t)
 	}
 
 	tarval := reflect.Indirect(reflect.ValueOf(target))
@@ -140,7 +139,7 @@ func (mapping Mapping) ScanRow(target interface{}, row Row, scanOrder ...string)
 	if err := row.Scan(scan...); err != nil {
 		if m := rowScanIndexRe.FindStringSubmatch(err.Error()); m != nil {
 			index, _ := strconv.Atoi(m[1])
-			return fmt.Errorf("Scan error on index %v: %v (recv: %v)", index, m[2], reflect.TypeOf(scan[index]))
+			return fmt.Errorf("scan error on index %v: %v (recv: %v)", index, m[2], reflect.TypeOf(scan[index]))
 		}
 		return err
 	}
@@ -155,8 +154,8 @@ func (mapping Mapping) ScanRow(target interface{}, row Row, scanOrder ...string)
 	return nil
 }
 
-// Scans the next row into the target. The database cursor is then closed, even
-// if an error occurs.
+// ScanOne scans the next row into the target. The database cursor is then
+// closed, even if an error occurs.
 func (mapping Mapping) ScanOne(target interface{}, rows Rows) (bool, error) {
 	defer rows.Close()
 	cols, err := rows.Columns()
@@ -172,9 +171,9 @@ func (mapping Mapping) ScanOne(target interface{}, rows Rows) (bool, error) {
 	return true, nil
 }
 
-// Proceeds to scan each row, sending it over the returned channel. If an error
-// occurs, the sent value will be of type error and the channel will be closed.
-// The channel and rows will be closed by the sending routine.
+// ScanStream proceeds to scan each row, sending it over the returned channel.
+// If an error occurs, the sent value will be of type error and the channel
+// will be closed.  The channel and rows will be closed by the sending routine.
 func (mapping Mapping) ScanStream(rows Rows) <-chan interface{} {
 	out := make(chan interface{})
 	go func() {
@@ -202,9 +201,9 @@ func (mapping Mapping) ScanStream(rows Rows) <-chan interface{} {
 	return out
 }
 
-// Scans all available rows into a slice. The result is returned as a slice of
-// the type that was used to create this mapping. The cursor is always closed.
-// If an error occurs, none of the scanned values are returned.
+// ScanAll scans all available rows into a slice. The result is returned as a
+// slice of the type that was used to create this mapping. The cursor is always
+// closed.  If an error occurs, none of the scanned values are returned.
 func (mapping Mapping) ScanAll(rows Rows) (interface{}, error) {
 	stream := mapping.ScanStream(rows)
 	slice := reflect.MakeSlice(reflect.SliceOf(mapping.structType), 0, 1)
