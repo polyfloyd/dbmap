@@ -224,3 +224,57 @@ func TestDuplicateMappingEmbedded(t *testing.T) {
 		t.Fatalf("expected an error")
 	}
 }
+
+func TestDefaultDBName(t *testing.T) {
+	tt := []struct {
+		FieldName string
+		DBName    string
+	}{
+		{"Foo", "foo"},
+		{"FooBar", "foo_bar"},
+		{"FooBarBaz", "foo_bar_baz"},
+		{"JSON", "json"},
+		{"JSONThing", "json_thing"},
+		{"FooJSONThing", "foo_json_thing"},
+		{"FooXBar", "foo_x_bar"},
+	}
+	for i, tc := range tt {
+		t.Run(tc.DBName, func(t *testing.T) {
+			dbName := defaultDBName(tc.FieldName)
+			if dbName != tc.DBName {
+				t.Fatalf("unexpected dbName at index %d, exp %q, got %q", i, tc.DBName, dbName)
+			}
+		})
+	}
+}
+
+func TestDefaultNameMapping(t *testing.T) {
+	rows := &testRows{
+		current: -1,
+		rows: []testRow{
+			{"foo": "bar"},
+		},
+	}
+
+	type MyStruct struct {
+		Foo string
+	}
+
+	mapping, err := StructMapping(MyStruct{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	results, err := mapping.ScanAll(rows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	slice, ok := results.([]MyStruct)
+	if !ok {
+		t.Fatalf("Invalid return value for ScanAll(): %v", reflect.TypeOf(slice))
+	}
+
+	if slice[0].Foo != rows.rows[0]["foo"] {
+		t.Fatalf("Field was not scanned")
+	}
+}

@@ -11,6 +11,7 @@ import (
 
 var (
 	rowScanIndexRe = regexp.MustCompile(`index (\d+): (.+)$`)
+	fieldNameRe    = regexp.MustCompile(`([A-Z]+)([^A-Z]*)`)
 )
 
 var mappers []Mapper
@@ -86,19 +87,26 @@ func (mapping *Mapping) mapStruct(structType reflect.Type, nesting func(reflect.
 outer:
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
-
 		dbName := field.Tag.Get("db")
+
 		if dbName == "-" {
+			// The field is explicitly marked to not be mapped, skip it.
 			continue
 		}
 
 		if dbName == "" {
+			// No name set? Check whether this is an embedded field and
+			// recursively map all of its fields.
 			if field.Anonymous && field.Type.Kind() == reflect.Struct {
 				mapping.mapStruct(field.Type, func(s reflect.Value) reflect.Value {
 					return nesting(s).FieldByName(field.Name)
 				})
+				continue
 			}
-			continue
+
+			// The field is not an embedded struct and no name is set, infer
+			// the db name from the struct field name.
+			dbName = defaultDBName(field.Name)
 		}
 
 		if _, ok := mapping.dbToStruct[dbName]; ok {
@@ -239,3 +247,18 @@ type Rows interface {
 }
 
 var _ Rows = &sql.Rows{}
+
+func defaultDBName(fieldName string) string {
+	matches := fieldNameRe.FindAllStringSubmatch(fieldName, -1)
+	var parts []string
+	for _, m := range matches {
+		head, tail := m[1], m[2]
+		if len(head) > 1 && len(tail) != 0 {
+			i := len(head) - 1
+			parts = append(parts, strings.ToLower(head[:i]))
+			head = head[i:]
+		}
+		parts = append(parts, strings.ToLower(head)+tail)
+	}
+	return strings.Join(parts, "_")
+}
