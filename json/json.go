@@ -1,4 +1,4 @@
-package dbmap
+package json
 
 import (
 	"bytes"
@@ -9,10 +9,12 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+
+	"github.com/polyfloyd/dbmap"
 )
 
 func init() {
-	RegisterMapper(jsonMapper{})
+	dbmap.RegisterMapper(jsonMapper{})
 }
 
 var jsonBufPool = &sync.Pool{
@@ -20,6 +22,8 @@ var jsonBufPool = &sync.Pool{
 		return &bytes.Buffer{}
 	},
 }
+
+var jsonType = reflect.TypeOf(map[string]interface{}{})
 
 type jsonScanner map[string]interface{}
 
@@ -61,5 +65,6 @@ func (jsonMapper) Receive(field reflect.Value) (receiver interface{}) {
 }
 
 func (jsonMapper) Copy(target, scanned interface{}) {
-	reflect.Indirect(reflect.ValueOf(target)).Set(reflect.ValueOf(*scanned.(*jsonScanner)))
+	reflect.Indirect(reflect.ValueOf(target)).
+		Set(reflect.ValueOf(*scanned.(*jsonScanner)).Convert(jsonType))
 }
